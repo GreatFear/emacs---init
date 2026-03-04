@@ -1,0 +1,341 @@
+*** Functionality
+**** Housekeeping
+#+BEGIN_SRC emacs-lisp
+  (setq org-startup-with-inline-images t)
+  (global-display-line-numbers-mode t)
+  (global-visual-line-mode t)
+
+  (setq helm-split-window-in-side-p t)
+  (setq helm-split-window-default-side 'below)
+  (setq helm-autoresize-mode t)
+#+END_SRC
+**** General Keybinds
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-x f") #'find-file-at-point)
+  (global-set-key (kbd "M-s g") 'rgrep)
+  (global-set-key (kbd "C-c m") 'magit)
+  (global-set-key (kbd "C-c $") 'shell)
+
+  (global-set-key (kbd "C-c C-<left>") 'windmove-left)
+  (global-set-key (kbd "C-c C-<right>") 'windmove-right)
+#+END_SRC
+
+
+*** Org-Mode
+**** Set Up
+#+BEGIN_SRC emacs-lisp
+  (require 'org)
+  (require 'image)
+  (require 'sqlite3)
+  (require 'org-roam)
+  (require 'org-roam-ui)
+
+  (setq org-roam-directory "~/Documents/2-notes")
+
+  (org-roam-db-autosync-mode)
+  (org-roam-setup)
+
+  (setq org-roam-ui-port 8888)
+  (setq org-roam-ui-sync-theme t)
+  (org-roam-ui-mode)
+#+END_SRC
+
+**** Inserting Images
+#+BEGIN_SRC emacs-lisp
+  (defun org-insert-image ()
+    "Inserts an image from the /images/ folder below your `org-directory`."
+    (interactive)
+    (let* ((imgs-path  "/home/greatfear/Programming_Languages/2-Roamin-Notes/Screenshots/")
+	   (the-image  (completing-read "Image: " (directory-files imgs-path)
+					nil nil))
+	   (abs-path   (concat imgs-path the-image))
+	   (img-file   (file-relative-name abs-path)))
+      (insert "[[file:" img-file "]]"))
+    (org-display-inline-images))
+#+END_SRC
+
+**** Customized Variables
+#+BEGIN_SRC emacs-lisp
+      (custom-set-variables
+       '(org-cycle-emulate-tab t)
+       '(org-support-shift-select 'always))
+#+END_SRC
+
+**** Setting Up Org-Roam
+#+BEGIN_SRC emacs-lisp
+  (defun create-note-type-menu ()
+    (let ((buf (get-buffer-create "*menu*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (insert "0 - Fleeting Notes\n")
+        (insert "1 - Reference Notes\n")
+        (insert "2 - Permanent Notes\n")
+        (insert "3 - World Building\n")
+        )
+      (display-buffer buf)))
+
+  (defun response (input)
+    (pcase input
+      ("2" (completing-read "Worlds: " '("0" "1") nil t))
+      ("4" (completing-read "Types of Notes: " '("0" "1" "2" "3") nil t))
+      ("3" (completing-read "Types of Notes: " '("0" "1" "2") nil t))
+      ("7" (completing-read "World Building Topcs: " '("0" "1" "2" "3" "4" "5" "6") nil t))
+      )
+    )
+
+  (defun murder-menu (input)
+    "Kills whatever is inputted"
+    (kill-buffer input))
+
+  (defun menu ()
+    (prog2
+        (create-note-type-menu)
+        (response "4")
+      (murder-menu "*menu*")))
+#+END_SRC
+
+**** Templates
+***** Fleeting Notes
+#+BEGIN_SRC emacs-lisp
+  (defun creation-of-fleeting-notes ()
+    (setq org-roam-capture-templates
+  	'(("f" "Fleeting" plain
+  	 "#+title: FFS-${title}\n#+filetags: :Fleeting:\n\n*** Fleeting Thoughts"
+  	 :if-new (file "./0-fleeting-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	 :unnarrowed t))
+  	))
+#+END_SRC
+
+***** Reference Notes
+#+BEGIN_SRC emacs-lisp
+  (defun creation-of-reference-notes ()
+    (setq org-roam-capture-templates
+  	'(("m" "Map of Contents" plain
+  	   "#+title: ${title}\n#+filetags: :Reference:MoC:\nPrevious Link: \n\n*** Reference Links\n"
+  	   :if-new (file "./1-reference-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+
+  	  ("b" "Book" plain
+  	   "#+title: ${title}\n#+filetags: :Reference:Book:\n Previous Link: \n Links:\n\n*** Source\nTitle: %^{Title}\nAuthor: %^{Author}\nYear: %^{Year}\nPage Number: %^{Page Number}\nISBN: %^{ISBN} \n\n**** Summary %?\n"
+  	   :if-new (file "./1-reference-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+
+  	  ("p" "Presentation" plain
+  	   "#+title: ${title}\n#+filetags: :Reference:Presentation:\n Previous Link: \n Links:\n\n*** Source\nTitle: %^{Title}\nAuthor: %^{Author}\nSlide: %^{Slide} \n\n**** Summary %?\n"
+  	   :if-new (file "./1-reference-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+
+  	  ("v" "Video" plain
+  	   "#+title: ${title}\n#+filetags: :Reference:Video:\nPrevious Link: \n Links:\n\n*** Source\nTitle: %^{Title}\nAuthor: %^{Author}\nPublished: %^{Month}-%^{Day}-%^{Year} \n\n**** Summary %?\n"
+  	   :if-new (file "./1-reference-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+  	  )
+  	)
+    )
+#+END_SRC
+
+***** Permanent Notes
+#+BEGIN_SRC emacs-lisp
+  (defun creation-of-permenant-notes ()
+    (setq org-roam-capture-templates
+  	'(("m" "Map of Contents" plain
+  	   "#+title: ${title}\n#+filetags: :Zettel:MoC:\nPrevious Link: \n\n*** Related Questions\n"
+  	   :if-new (file "./2-permenant-notes/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+
+  	  ("p" "Permenant Note" plain
+  	   "#+title: ${title}\n#+filetags: :Zettel:\nPrevious Link:\nNext Link:\n\n**** Thought\n\n**** Reference"
+  	   :if-new (file "$(my/sub-folder)/%<%Y%m%d%H%M%S>-${slug}.org")
+  	   :unnarrowed t)
+  	  )
+  	)
+    )
+#+END_SRC
+
+***** World Building Notes
+#+BEGIN_SRC emacs-lisp
+  (defun world-menu ()
+    "Display the world" 
+    (let ((buf (get-buffer-create "*world-menu*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (insert "0 - The Great Forest\n")
+        (insert "1 - The Rotting Beserker\n")
+        )
+      (display-buffer buf)))
+
+  (defun topic-menu ()
+    "Display the topic"
+    (let ((buf (get-buffer-create "*topic-menu*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (insert "0 - Map of Content\n")
+        (insert "1 - Concept\n")
+        (insert "2 - Event")
+        (insert "3 - Region\n")
+        (insert "4 - Nation\n")
+        (insert "5 - Race\n")
+        (insert "6 - Character\n")
+        )
+      (display-buffer buf)))
+
+  (defun realm-menu ()
+    "Display the realm" 
+    (let ((buf (get-buffer-create "*realm-menu*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (insert "0 - Lower Realm\n")
+        (insert "1 - Middle Realm\n")
+        (insert "2 - Upper Realm")
+        )
+      (display-buffer buf)))
+
+  (defun choosing-world ()
+    (prog2
+        (world-menu)
+        (response "2")
+      (murder-menu "*world-menu*")))
+
+  (defun choosing-topic ()
+    (prog2
+        (topic-menu)
+        (response "7")
+      (murder-menu "*topic-menu*")))
+
+  (defun choosing-realm (input)
+    (prog2
+        (realm-menu)
+        (response "3")
+      (murder-menu "*realm-menu*")))
+
+  (defun deciding-realm (world input)
+    (if (string= world "TheGreatForest") 
+        (pcase input
+      	("0" "Lower")
+      	("1" "Middle")
+      	("2" "Upper")
+      	)
+      )
+    (string= world "TheGreatForest")
+    )
+
+  (defun response-world (input)
+    (pcase input
+      ("0" "TheGreatForest")
+      ("1" "TheRottingBeserker")
+      ))
+
+  (defun response-topic (input)
+    (pcase input
+      ("0" "MOC")
+      ("1" "Concept")
+      ("2" "Event")
+      ("3" "Region")
+      ("4" "Nation")
+      ("5" "Race")
+      ("6" "Character")
+      ))
+
+  (defun with-or-without-realm (world realm topic)
+    (if (string= world "TheGreatForest")
+        (format "#+title: ${title}\n#+filetags: :%s:%s:%s:\nPrevious Link: \n\n**** Permenant Links\n" world realm topic)
+      (format "#+title: ${title}\n#+filetags: :%s:%s:\nPrevious Link: \n\n**** Permenant Links\n" world topic))
+    )
+
+  (defun creation-of-world-building-notes ()
+    (let* ((world (choosing-world))
+      	 (realm (deciding-realm (choosing-realm)))
+      	 (topic (choosing-topic))
+      	 (final (with-or-without-realm world realm topic))
+      	 )
+      (setq org-roam-capture-templates ()
+      	  ("m" "Map of Contents" plain
+      	   final
+      	   :if-new (file "3-world-building/%<%Y%m%d%H%M%S>-${slug}.org")
+      	   :unnarrowed t))
+      )
+    )
+
+#+END_SRC
+***** Choosing Templates
+#+BEGIN_SRC emacs-lisp
+  (defun creation-of-new-note ()
+    (pcase (menu)
+      ("0" (creation-of-fleeting-notes))
+      ("1" (creation-of-reference-notes))
+      ("2" (creation-of-permenant-notes))
+      ("3" (creation-of-world-building-notes))
+      )
+    )
+
+  (defun my/org-roam-insert ()
+    "Set custom templates then insert a node."
+    (interactive)
+    (creation-of-new-note)
+    (org-roam-node-find))
+
+    (global-set-key (kbd "C-c n f") #'my/org-roam-insert)
+#+END_SRC
+
+**** Org-Mode Keybindings
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-c n l") 'org-roam-buffer-toggle)
+  (global-set-key (kbd "C-c n i") 'org-roam-node-insert)
+  (global-set-key (kbd "C-c i i") 'org-insert-image)
+#+END_SRC
+
+*** Programming
+**** General Setup
+#+BEGIN_SRC emacs-lisp
+    ;; lsp-mode
+  (require 'lsp-mode)
+  (setq lsp-prefer-capf t)
+  (add-hook 'java-mode-hook #'lsp-deferred)
+
+  ;; lsp-ui
+  (require 'lsp-ui)
+  (setq lsp-ui-doc-enable t
+        lsp-ui-sideline-enable t)
+
+  ;; dap-mode
+  (require 'dap-mode)
+  (dap-auto-configure-mode)
+
+  ;; helm
+  (require 'helm)
+  (helm-mode)
+
+  ;; helm-lsp
+  (require 'helm-lsp)
+
+  ;; company
+  (require 'company)
+  (add-hook 'after-init-hook #'global-company-mode)
+
+  ;; flycheck
+  (require 'flycheck)
+  (global-flycheck-mode)
+#+END_SRC
+
+**** Assembly
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'auto-mode-alist '("\\.asm\\'" . asm-mode))
+#+END_SRC
+
+**** Java
+#+BEGIN_SRC emacs-lisp
+    ;; lsp-java
+  (require 'lsp-java)
+  (setq lsp-java-server-install-dir "~/.emacs.d/lsp/eclipse.jdt.ls/")
+
+  ;; dap-java
+  (require 'dap-java)
+
+  (add-hook 'java-mode-hook #'lsp)
+#+END_SRC
+
+
+*** Ending
+#+BEGIN_SRC emacs-lisp
+     (provide 'uwu)
+#+END_SRC
