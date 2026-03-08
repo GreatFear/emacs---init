@@ -171,7 +171,7 @@
         (erase-buffer)
         (insert "0 - Map of Content\n")
         (insert "1 - Concept\n")
-        (insert "2 - Event")
+        (insert "2 - Event\n")
         (insert "3 - Region\n")
         (insert "4 - Nation\n")
         (insert "5 - Race\n")
@@ -186,37 +186,16 @@
         (erase-buffer)
         (insert "0 - Lower Realm\n")
         (insert "1 - Middle Realm\n")
-        (insert "2 - Upper Realm")
+        (insert "2 - Upper Realm\n")
         )
       (display-buffer buf)))
 
-  (defun choosing-world ()
-    (prog2
-        (world-menu)
-        (response "2")
-      (murder-menu "*world-menu*")))
-
-  (defun choosing-topic ()
-    (prog2
-        (topic-menu)
-        (response "7")
-      (murder-menu "*topic-menu*")))
-
-  (defun choosing-realm (input)
-    (prog2
-        (realm-menu)
-        (response "3")
-      (murder-menu "*realm-menu*")))
-
-  (defun deciding-realm (world input)
-    (if (string= world "TheGreatForest") 
-        (pcase input
-      	("0" "Lower")
-      	("1" "Middle")
-      	("2" "Upper")
-      	)
+  (defun response-realm (input) 
+    (pcase input
+      ("0" "Lower")
+      ("1" "Middle")
+      ("2" "Upper")
       )
-    (string= world "TheGreatForest")
     )
 
   (defun response-world (input)
@@ -236,6 +215,24 @@
       ("6" "Character")
       ))
 
+  (defun choosing-world ()
+    (prog2
+        (world-menu)
+        (response-world (response "2"))
+      (murder-menu "*world-menu*")))
+
+  (defun choosing-topic ()
+    (prog2
+        (topic-menu)
+        (response-topic (response "7"))
+      (murder-menu "*topic-menu*")))
+
+  (defun choosing-realm ()
+    (prog2
+        (realm-menu)
+        (response-realm (response "3"))
+      (murder-menu "*realm-menu*")))
+
   (defun with-or-without-realm (world realm topic)
     (if (string= world "TheGreatForest")
         (format "#+title: ${title}\n#+filetags: :%s:%s:%s:\nPrevious Link: \n\n**** Permenant Links\n" world realm topic)
@@ -243,20 +240,22 @@
     )
 
   (defun creation-of-world-building-notes ()
-    (let* ((world (choosing-world))
-      	 (realm (deciding-realm (choosing-realm)))
+    (let* (
+  	 (world (choosing-world))
+      	 (realm (when (string= world "TheGreatForest") (choosing-realm)))
       	 (topic (choosing-topic))
       	 (final (with-or-without-realm world realm topic))
       	 )
-      (setq org-roam-capture-templates ()
-      	  ("m" "Map of Contents" plain
-      	   final
-      	   :if-new (file "3-world-building/%<%Y%m%d%H%M%S>-${slug}.org")
-      	   :unnarrowed t))
+      (setq org-roam-capture-templates
+      	  `(("m" "Map of Contents" plain
+      	     ,final
+      	     :if-new (file "3-world-building/%<%Y%m%d%H%M%S>-${slug}.org")
+      	     :unnarrowed t)))
       )
     )
 
 #+END_SRC
+
 ***** Choosing Templates
 #+BEGIN_SRC emacs-lisp
   (defun creation-of-new-note ()
@@ -334,6 +333,11 @@
   (add-hook 'java-mode-hook #'lsp)
 #+END_SRC
 
+**** Web Development
+#+BEGIN_SRC emacs-lisp
+  (require 'flycheck)
+  (add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode))
+#+END_SRC
 
 *** Ending
 #+BEGIN_SRC emacs-lisp

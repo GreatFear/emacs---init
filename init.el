@@ -14,7 +14,7 @@
  '(org-support-shift-select 'always)
  '(package-selected-packages
    '(company flycheck helm-lsp lsp-java lsp-ui org-roam-timeline
-	     org-roam-ui slime sqlite3)))
+	     org-roam-ui slime sqlite3 web-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
